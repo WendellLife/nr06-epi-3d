@@ -49,7 +49,7 @@ export const playerLook = {operador:{body:'male',surface:'#c8772b',skin:'#c68642
 // Como cada EPI aparece no personagem do jogador.
 export const wornLook = worn => ({
  helmet:worn.includes('capacete')?'#e8aa21':null,goggles:worn.includes('oculos'),faceShield:worn.includes('facial'),earmuffs:worn.includes('auricular'),
- respirator:worn.includes('respirador'),apron:worn.includes('avental')?'#3d6b4f':null,harness:worn.includes('cinturao'),
- gloves:worn.includes('luvaQuimica')?'#2f8a57':worn.includes('luva')?'#b08a55':null
+ respirator:worn.includes('respirador'),apron:worn.includes('avental')?'#2f9e63':null,harness:worn.includes('cinturao'),
+ gloves:worn.includes('luvaQuimica')?'#2fbf6b':worn.includes('luva')?'#d9a04a':null,safetyBoots:worn.includes('calcado')?'#b5651d':null
 });
 export const W = bounds;

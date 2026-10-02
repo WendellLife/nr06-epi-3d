@@ -26,9 +26,11 @@ Requer Node.js 18 ou superior (ou Python 3).
 
 O losango verde é você. O losango azul, o alvo luminoso e as setas no chão marcam o destino.
 
-**Painel “Seus EPI”** (canto superior direito): os nove grupos de proteção do Anexo I, de A a I. **Verde**: exigido pela tarefa e em uso. **Vermelho**: exigido e faltando ou danificado. **Azul**: em uso, sem exigência na etapa. Embaixo, o painel diz o que falta ou o que você está usando.
+**Painel “Seus EPI”** (canto superior direito): os nove grupos de proteção do Anexo I, de A a I, e embaixo o pictograma de cada EPI. **Verde**: exigido pela tarefa e em uso. **Vermelho** (piscando, com “falta” ou “danificado”): exigido e ausente ou impróprio. **Azul**: em uso, sem exigência na etapa.
 
-**Seu personagem** mostra os EPI em uso: capacete, óculos, protetor facial, protetor auditivo, respirador, avental, luvas e cinturão aparecem e somem conforme a etapa.
+**Você vestiu:** a cada EPI novo, aparece um aviso com o pictograma, a câmera se aproxima e o personagem vira de frente por alguns segundos, mostrando o equipamento. Capacete, óculos, protetor facial, protetor auditivo, respirador, avental, luvas, calçado e cinturão aparecem no personagem.
+
+**Placas azuis:** cada setor tem a placa de uso obrigatório com os pictogramas dos EPI daquela área (ruído, esmeril, tintas, altura, solda).
 
 **Fábrica sem teto:** o galpão aparece aberto em cima, para o jogador ver todos os setores.
 
@@ -76,6 +78,7 @@ Você é: **Operador de produção**. Com você na fábrica: Carla (técnica de 
 | `dist/layout.mjs` | Planta da fábrica, equipe, estados de cada pessoa e aparência dos EPI |
 | `dist/crew.mjs` | Fase de cada pessoa conforme o andamento e busca de rotas |
 | `dist/scenery.mjs` | Cenário 3D |
+| `dist/icons.mjs` | Pictogramas dos EPI (painel, aviso e placas) |
 | `dist/game.mjs` | Jogo: câmera, equipe, painel dos EPI e diálogos |
 | `dist/graphics.mjs` | Qualidade, pós-processamento e texturas |
 | `dist/characters.mjs` | Personagens com esqueleto, animações, poses de ação e EPI |

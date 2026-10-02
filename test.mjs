@@ -82,7 +82,9 @@ for(const o of r.objectivesOf(m)){const p=r.protectionOf(at(o.id));if(!p.missing
 for(const o of r.objectivesOf(m))for(const g of Object.keys(r.GRUPOS))assert.ok(['','ok','falta','usa'].includes(r.protectionOf(at(o.id)).groups[g]));
 assert.equal(r.protectionOf(at('tarefa')).groups.H,'','Grupo H não é usado');
 // Aparência do jogador acompanha os EPI.
-assert.equal(wornLook([]).helmet,null);{const l=wornLook(['capacete','oculos','luvaQuimica','cinturao']);assert.ok(l.helmet&&l.goggles&&l.harness&&!l.respirator&&l.gloves==='#2f8a57');}
+assert.equal(wornLook([]).helmet,null);{const l=wornLook(['capacete','oculos','luvaQuimica','cinturao']);assert.ok(l.helmet&&l.goggles&&l.harness&&!l.respirator&&l.gloves==='#2fbf6b'&&!l.safetyBoots);assert.ok(wornLook(['calcado']).safetyBoots,'Calçado aparece no personagem');}
+// Todo EPI tem pictograma (painel, aviso e placas do cenário).
+{const {ICONS,iconSVG}=await import('./dist/icons.mjs');for(const k of Object.keys(r.EPI)){assert.ok(/^M[\d\s.a-zA-Z-]+$/.test(ICONS[k]),`Pictograma de ${k}`);assert.ok(iconSVG(k).includes(ICONS[k]));}assert.deepEqual(Object.keys(ICONS).sort(),Object.keys(r.EPI).sort());}
 
 // 7. Conteúdo: pontos que os textos precisam afirmar
 assert.match(correctOf(obj('hierarquia')).label,/última barreira/);assert.match(correctOf(obj('ca')).label,/número do CA/);assert.match(correctOf(obj('ficha')).label,/gratuito/);

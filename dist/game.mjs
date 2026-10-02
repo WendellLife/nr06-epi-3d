@@ -5,6 +5,7 @@ import {createRenderPipeline,detectHardware,savedQuality,QUALITY,makeTextures} f
 import {MODULES,MODULE_IDS,objectivesOf,initialState,interact,answer,canMove,currentTarget,refSummary,KINDS,visibleItems,wornOf,protectionOf,EPI,GRUPOS,GRUPOS_CURTO} from './rules.mjs';
 import {staticObstacles,bounds,start,rosters,playerLook,wornLook} from './layout.mjs';
 import {buildScenery} from './scenery.mjs';
+import {iconSVG} from './icons.mjs';
 const $=id=>document.getElementById(id);
 let renderer;
 try{renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});}catch(e){$('loading').textContent='Não foi possível iniciar o 3D. Ative a aceleração gráfica do navegador e recarregue.';throw e;}
@@ -38,7 +39,9 @@ function navigationDiamond(color){const g=new T.Group();const mesh=new T.Mesh(ne
 const playerDiamond=navigationDiamond('#66ff38');playerDiamond.scale.setScalar(.55);playerDiamond.position.y=2.3;player.add(playerDiamond);
 // O personagem do jogador é refeito sempre que muda o conjunto de EPI em uso.
 let wornKey='';
-function buildPlayer(){if(playerChar)player.remove(playerChar.group);const worn=wornOf(state);wornKey=worn.join();playerChar=createCharacter(charBase,{...playerLook[state.module],...wornLook(worn),glow:.06});player.add(playerChar.group);}
+// "showcase": logo depois de vestir um EPI, o personagem mostra o conjunto recém-vestido por alguns segundos.
+let showcase=null;
+function buildPlayer(){if(playerChar)player.remove(playerChar.group);const worn=showcase?showcase.worn:wornOf(state);wornKey=worn.join();playerChar=createCharacter(charBase,{...playerLook[state.module],...wornLook(worn),glow:.06});player.add(playerChar.group);}
 const marker=new T.Group();scene.add(marker);const diamond=navigationDiamond('#25ddff');marker.add(diamond);
 const targetRing=new T.Group();scene.add(targetRing);
 function navigationRing(inner,outer,color,order){const r=new T.Mesh(new T.RingGeometry(inner,outer,64),new T.MeshBasicMaterial({color,side:T.DoubleSide,transparent:true,opacity:1,toneMapped:false,depthTest:false,depthWrite:false}));r.rotation.x=-Math.PI/2;r.renderOrder=order;targetRing.add(r);return r;}
@@ -82,14 +85,18 @@ function updateWorkers(dt){
 // ---- Objetos do cenário e mapa de riscos ----
 const itemDefaults=Object.fromEntries(Object.entries(SC.items).map(([k,v])=>[k,v.def]));
 function applyItems(){const vis=visibleItems(state,itemDefaults);for(const [k,it] of Object.entries(SC.items))it.obj.visible=!!vis[k];}
-// Painel de EPI: grupos do Anexo I (em uso, exigido pela tarefa, faltando) e a lista do que o jogador veste.
+// Painel de EPI: grupos do Anexo I (em uso, exigido pela tarefa, faltando) e os pictogramas do que o jogador veste.
+// Quando o jogador veste um EPI novo, um aviso mostra o pictograma, a câmera se aproxima e o personagem vira de frente.
+let focusUntil=0,gainTimer;
+function showGain(keys){$('gain').innerHTML=`<small>VOCÊ VESTIU</small><div>${keys.map(k=>`<span><i>${iconSVG(k,34)}</i>${EPI[k].nome}</span>`).join('')}</div>`;$('gain').classList.add('show');clearTimeout(gainTimer);gainTimer=setTimeout(()=>$('gain').classList.remove('show'),3600);focusUntil=time+3.4;player.rotation.y=0;}
 function applyPanel(){
  const p=protectionOf(state);
  $('ep-atm').innerHTML=Object.entries(GRUPOS).map(([g,nome])=>`<span class="${p.groups[g]||'off'}" title="${nome}"><b>${g}</b><small>${GRUPOS_CURTO[g]}</small></span>`).join('');
  $('ep-state').textContent=!p.required?'Sem exigência':p.ok?'Proteção completa':'Proteção incompleta';$('ep-state').className=!p.required?'atencao':p.ok?'seguro':'perigo';
- $('ep-radii').textContent=p.required&&!p.ok?p.label:p.worn.length?'Em uso: '+p.worn.map(k=>EPI[k].nome).join(', '):'Você ainda não recebeu os seus EPI';
+ const chip=(k,cls,tag='')=>`<span class="${cls}"><i>${iconSVG(k,22)}</i>${EPI[k].nome}${tag}</span>`;
+ $('ep-radii').innerHTML=p.worn.length||p.missing.length?p.missing.map(k=>chip(k,'falta',' <em>falta</em>')).join('')+p.worn.map(k=>chip(k,p.damaged.includes(k)?'falta':p.need.includes(k)?'ok':'usa',p.damaged.includes(k)?' <em>danificado</em>':'')).join(''):'<small>Você ainda não recebeu os seus EPI</small>';
  $('ep').style.borderTopColor=!p.required?'#f0c23f':p.ok?'#57c48f':'#e5583c';
- if(wornKey!==p.worn.join())buildPlayer();
+ if(!showcase&&wornKey!==p.worn.join())buildPlayer();
 }
 // ---- Alvos, painel e diálogos ----
 function anchorOf(o){if(!o)return null;if(o.who)return byName(o.who).rig.position;return {x:o.x,z:o.z};}
@@ -127,12 +134,14 @@ function moduleMenu(first=false){
  document.querySelectorAll('[data-module]').forEach(b=>b.onclick=()=>{const id=b.dataset.module;if(id===state.module&&state.step>0&&!finished&&!first){closeDialog();return;}startModule(id);});
 }
 function startModule(id){
- state=initialState(id);if(!SINGLE)history.replaceState(null,'','#'+id);finished=false;elapsed=0;camDist=1;playerAction=null;clearTimeout(toastTimer);$('toast').classList.remove('show');
+ state=initialState(id);showcase=null;focusUntil=0;$('gain').classList.remove('show');if(!SINGLE)history.replaceState(null,'','#'+id);finished=false;elapsed=0;camDist=1;playerAction=null;clearTimeout(toastTimer);$('toast').classList.remove('show');
  player.position.set(start.x,0,start.z);player.rotation.y=Math.PI;look.set(start.x,0,start.z);missionCollapsed=innerWidth<600;
  buildPlayer();buildWorkers();applyModuleChrome();updateHUD();closeDialog();
  const M=MODULES[id];notify('Primeiro dia na metalúrgica. Siga o círculo azul e fale com a Carla.');
 }
-function applyState(next){state=next;updateHUD();if(state.feedback)notify(state.feedback);
+function applyState(next){const prev=state,was=currentTarget(prev),adv=next.step>prev.step;state=next;
+ if(adv&&was?.wear?.add?.length&&!next.finished){const out=was.wear.remove||[];showcase={until:time+3.4,worn:Object.keys(EPI).filter(k=>was.wear.add.includes(k)||(wornOf(prev).includes(k)&&!out.includes(k)))};buildPlayer();showGain(was.wear.add);}
+ updateHUD();if(state.feedback)notify(state.feedback);
  if(state.finished){finished=true;const M=MODULES[state.module],i=MODULE_IDS.indexOf(state.module),nextId=MODULE_IDS[(i+1)%MODULE_IDS.length];saveBest(state.module,{errors:state.errors,time:Math.round(elapsed)});
   openDialog(SINGLE?'Fase concluída.':'Módulo concluído.',`<div class="success-number">${state.completed.length} / ${objectives().length}</div><p>${M.summary}</p><p>Tempo: <strong>${Math.floor(elapsed/60)}min ${Math.floor(elapsed%60)}s</strong>. Decisões corrigidas: <strong>${state.errors}</strong>.</p><p>Lembre: o EPI é a última barreira, depois da eliminação do risco, da proteção coletiva e da organização do trabalho. Só vale EPI com <strong>CA</strong>, fornecido gratuitamente, com registro e orientação. Itens marcados como <em>Boa prática</em> não são item de NR. A simulação não substitui o treinamento da empresa, a seleção de EPI registrada no PGR nem o manual do fabricante.</p>${SINGLE?'':`<div class="next-row"><button id="next-module">Próximo: ${MODULES[nextId].name} <span>→</span></button></div><button id="pick-module" class="secondary">Escolher módulo</button>`}`,{noResume:true});
   if(!SINGLE){$('next-module').onclick=()=>startModule(nextId);$('pick-module').onclick=()=>moduleMenu();}}}
@@ -147,7 +156,7 @@ function act(){if(paused||finished)return;const o=currentTarget(state);if(!o)ret
  const next=interact(state,o.id);
  if(next.step>state.step){playerAction={pose:'inspect',until:time+1.3};keys.clear();}
  applyState(next);}
-function help(){const M=MODULES[state.module];openDialog(SINGLE?'NR 6 • EPI':'Como jogar',`<p>${M.intro} Siga o círculo azul. Cada etapa traz uma decisão com três opções, só uma correta, e mostra a origem do conteúdo.</p><ul><li><strong>WASD / setas</strong>: mover. <strong>Shift</strong>: correr.</li><li><strong>E / AÇÃO</strong>: interagir no marcador.</li><li><strong>Losango verde</strong>: você. <strong>Losango azul e alvo luminoso</strong>: destino. As setas no chão mostram o caminho.</li><li><strong>Painel “Seus EPI”</strong> (canto superior direito): os grupos de proteção do Anexo I, de A a I. <strong>Verde</strong>: exigido pela tarefa e em uso. <strong>Vermelho</strong>: exigido e faltando ou danificado. <strong>Azul</strong>: em uso, sem exigência na etapa.</li><li><strong>Seu personagem</strong>: mostra os EPI que você está usando.</li>${SINGLE?'':'<li><strong>Módulos</strong>: troca de módulo a qualquer momento.</li>'}<li><strong>Fontes</strong>: de onde vem cada conteúdo (em vigor ou boa prática).</li></ul>`,{noRestart:false});}
+function help(){const M=MODULES[state.module];openDialog(SINGLE?'NR 6 • EPI':'Como jogar',`<p>${M.intro} Siga o círculo azul. Cada etapa traz uma decisão com três opções, só uma correta, e mostra a origem do conteúdo.</p><ul><li><strong>WASD / setas</strong>: mover. <strong>Shift</strong>: correr.</li><li><strong>E / AÇÃO</strong>: interagir no marcador.</li><li><strong>Losango verde</strong>: você. <strong>Losango azul e alvo luminoso</strong>: destino. As setas no chão mostram o caminho.</li><li><strong>Painel “Seus EPI”</strong> (canto superior direito): os grupos de proteção do Anexo I, de A a I. <strong>Verde</strong>: exigido pela tarefa e em uso. <strong>Vermelho</strong>: exigido e faltando ou danificado. <strong>Azul</strong>: em uso, sem exigência na etapa.</li><li><strong>Seu personagem</strong>: mostra os EPI que você está usando. A cada EPI novo, a câmera se aproxima para você ver.</li><li><strong>Placas azuis</strong>: mostram os EPI de uso obrigatório em cada setor.</li>${SINGLE?'':'<li><strong>Módulos</strong>: troca de módulo a qualquer momento.</li>'}<li><strong>Fontes</strong>: de onde vem cada conteúdo (em vigor ou boa prática).</li></ul>`,{noRestart:false});}
 $('action').addEventListener('click',act);$('help').onclick=help;$('modules').onclick=()=>moduleMenu();
 $('pause').onclick=()=>{if(paused&&!finished&&!$('overlay').hidden&&dialogMode!=='menu-dialog')closeDialog();else if(!finished&&$('overlay').hidden)openDialog('Missão pausada','<p>Continue quando estiver pronto.</p>');};
 $('resume').onclick=closeDialog;$('restart').onclick=()=>startModule(state.module);
@@ -186,12 +195,13 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/10
  else time+=dt*.25;
  unstick();const mobile=innerWidth<850;const tgt=currentTarget(state),tgtA=tgt&&!finished?anchorOf(tgt):null;
  const desired=new T.Vector3(player.position.x+(mobile?0:camShiftX*.6),0,player.position.z);
- if(tgtA){const dist=Math.hypot(tgtA.x-player.position.x,tgtA.z-player.position.z);const k=Math.min(.32,.12+Math.max(0,dist-5)*.028);desired.x+=(tgtA.x-desired.x)*k;desired.z+=(tgtA.z-desired.z)*k;}
- camDist+=((window.__nr06?.zoom||1)-camDist)*Math.min(1,dt*2);look.lerp(desired,Math.min(1,dt*7));if(settleNext){settleNext=false;settle(desired);}
+ if(tgtA&&!(time<focusUntil)){const dist=Math.hypot(tgtA.x-player.position.x,tgtA.z-player.position.z);const k=Math.min(.32,.12+Math.max(0,dist-5)*.028);desired.x+=(tgtA.x-desired.x)*k;desired.z+=(tgtA.z-desired.z)*k;}
+ camDist+=((window.__nr06?.zoom||(time<focusUntil&&playerMove.speed<.1?.5:1))-camDist)*Math.min(1,dt*(time<focusUntil?4:2));look.lerp(desired,Math.min(1,dt*7));if(settleNext){settleNext=false;settle(desired);}
  camera.position.copy(look).addScaledVector(camOffset,camDist);camera.lookAt(look.x,look.y+.6,look.z);
  sun.position.set(look.x-12,19,look.z+8);sun.target.position.set(look.x,0,look.z);
  const seeThrough=[{x:player.position.x,y:1.4,z:player.position.z},{x:player.position.x,y:.45,z:player.position.z}];if(tgtA)seeThrough.push({x:tgtA.x,y:.9,z:tgtA.z});updateSeeThrough(dt,seeThrough);
  SC.trees.forEach(t=>{t.foliage.rotation.z=Math.sin(time*1.4+t.seed)*.02;t.foliage.rotation.x=Math.sin(time*1.1+t.seed*2)*.012;});
+ if(showcase&&time>=showcase.until){showcase=null;if(wornKey!==wornOf(state).join())buildPlayer();}
  updateWorkers(paused?0:dt);
  updateGuide(dt,tgtA,tgt?reachOf(tgt):1.6);
  const o=currentTarget(state);if(o&&!finished){const an=anchorOf(o);const personal=!!o.who;targetRing.position.set(an.x,.06,an.z);targetRing.scale.setScalar(personal?.85:Math.min(1.6,Math.max(1,reachOf(o)/1.6)));marker.position.set(an.x,(personal?2.95+(an.y||0):2.7)+Math.sin(time*3)*.14,an.z);diamond.rotation.y=time*.7;const pulse=(time*.65)%1;targetPulse.scale.setScalar(1+pulse*.42);targetPulse.material.opacity=.28*(1-pulse);playerDiamond.position.y=2.3+Math.sin(time*2.7)*.06;playerDiamond.rotation.y=time*.6;v.copy(marker.position);v.y+=.7;v.project(camera);let ly=Math.max(innerWidth<600?330:110,Math.min(innerHeight-135,(-v.y*.5+.5)*innerHeight));const lx=Math.max(labelBounds.min,Math.min(labelBounds.max,(v.x*.5+.5)*innerWidth));const wr=$('ep').getBoundingClientRect(),lw=$('target-label').offsetWidth/2;if(lx+lw>wr.left-6&&lx-lw<wr.right+6&&ly>wr.top-10&&ly<wr.bottom+46)ly=wr.bottom+46;$('target-label').style.left=`${lx}px`;$('target-label').style.top=`${ly}px`;const near=nearTarget(o);$('action').classList.toggle('near',near);$('action-hint').textContent=near?'PRESSIONE PARA INTERAGIR':'SIGA O MARCADOR';}

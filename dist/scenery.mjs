@@ -4,6 +4,8 @@
 import * as T from './three.module.js';
 import {structures as ST,spots as SP,noise,mezz,LOT} from './layout.mjs';
 import {glowSprite} from './graphics.mjs';
+import {ICONS} from './icons.mjs';
+import {EPI} from './rules.mjs';
 export function buildScenery(scene,TX){
  const mats={};
  const mat=(c,metal=0,rough=.7)=>mats[c+'-'+metal+'-'+rough]??=new T.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
@@ -65,12 +67,18 @@ export function buildScenery(scene,TX){
  const helmetAt=(x,y,z,c,parent)=>{const m=new T.Mesh(new T.SphereGeometry(.15,18,10,0,Math.PI*2,0,Math.PI/2),mat(c,.1,.4));m.position.set(x,y,z);m.castShadow=true;parent.add(m);S.cyl(.17,.17,.02,c,x,y+.005,z,parent,18);return m;};
  const gogglesAt=(x,y,z,parent,c='#9fe3ff')=>{S.box(.2,.06,.05,c,x,y+.03,z,parent,.3);S.box(.22,.015,.06,'#1d2427',x,y+.065,z,parent);};
  const bootsAt=(x,y,z,parent)=>{for(const dx of [-.09,.09]){S.box(.11,.14,.26,'#2b2622',x+dx,y+.07,z,parent);S.box(.11,.1,.12,'#2b2622',x+dx,y+.19,z-.07,parent);}};
+ // Placa de uso obrigatório: círculos azuis com o pictograma de cada EPI e o nome embaixo.
+ const epiSign=(keys,title,x,y,z,ry=0,size=.62)=>{const w=keys.length*size+.16,h=size+.5;const m=canvasPlane(w,h,(g,W,H)=>{const u=W/w;g.fillStyle='#f6f6f2';g.fillRect(0,0,W,H);g.fillStyle='#1f5fa0';g.fillRect(0,0,W,.2*u);g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';g.font=`bold ${.12*u}px Arial`;g.fillText(title,W/2,.105*u,W-.1*u);
+   keys.forEach((k,i)=>{const cx=(.08+size*(i+.5))*u,cy=(.2+size*.5+.02)*u,r=size*.44*u;g.fillStyle='#1f6fc4';g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.save();const sc=r*1.3/24;g.translate(cx-12*sc,cy-12*sc);g.scale(sc,sc);g.fillStyle='#fff';g.fill(new Path2D(ICONS[k]));g.restore();
+    g.fillStyle='#16324a';g.font=`bold ${.075*u}px Arial`;const words=EPI[k].nome.split(' ');const l1=words.length>2?words.slice(0,2).join(' '):words[0],l2=words.length>2?words.slice(2).join(' '):words.slice(1).join(' ');g.fillText(l1,cx,(.2+size+.1)*u,size*u*.96);if(l2)g.fillText(l2,cx,(.2+size+.19)*u,size*u*.96);});},Math.min(1536,Math.round(w*420)));
+  m.material.emissive=new T.Color('#ffffff');m.material.emissiveMap=m.material.map;m.material.emissiveIntensity=.28;m.position.set(x,y,z);m.rotation.y=ry;scene.add(m);out.see.push(m);
+  const back=S.box(w+.08,h+.08,.05,'#3a4349',x,y,z);back.rotation.y=ry;back.translateZ(-.035);for(const dx of [-w/2+.1,w/2-.1]){const post=S.cyl(.035,.035,y,'#6b747a',x,y/2,z,undefined,8);post.rotation.y=ry;post.translateX(dx);post.translateZ(-.07);}return m;};
  // ---- Almoxarifado de EPI ----
  {const b=R('balcao');S.box(b.w,1,b.d,'#c9a16b',b.x,.5,b.z);S.box(b.w+.1,.06,b.d+.1,'#e7dcc3',b.x,1.03,b.z);S.sign('ALMOXARIFADO DE EPI',3.4,.4,b.x,.55,b.z+.41,'#173e31','#ffffff');
   for(const k of ['estante','estanteL']){const e=R(k);S.box(e.w,2.2,e.d,'#6b747a',e.x,1.1,e.z,undefined,.3);}
   {const e=R('estante');const cols=['#e8aa21','#f2f2ec','#2f7fb8','#d6362b','#2f8a57'];for(let i=0;i<9;i++){const x=e.x-2.3+i*.58;helmetAt(x,2.2,e.z,cols[i%5],scene);S.box(.44,.3,.5,i%2?'#b98a56':'#a87c4c',x,1.5,e.z+.2);S.box(.44,.3,.5,i%3?'#a87c4c':'#b98a56',x,.9,e.z+.2);}
    S.sign('SÓ EPI COM CA',2.2,.34,e.x,2.75,e.z+.42,'#1f5fa0','#ffffff');}
-  const kit=S.group();helmetAt(b.x-1.3,1.06,b.z,'#e8aa21',kit);gogglesAt(b.x-.6,1.06,b.z,kit);S.box(.16,.08,.12,'#f07a28',b.x,1.1,b.z,kit);S.cyl(.02,.02,.05,'#f5c518',b.x+.2,1.09,b.z,kit,8);bootsAt(b.x+.9,1.06,b.z,kit);S.sign('SEU KIT',.7,.2,b.x+1.6,1.25,b.z,'#25ddff','#111',kit);S.item('kit',kit);
+  const kit=S.group();helmetAt(b.x-1.3,1.06,b.z,'#e8aa21',kit);gogglesAt(b.x-.6,1.06,b.z,kit);S.box(.16,.08,.12,'#f07a28',b.x,1.1,b.z,kit);S.cyl(.02,.02,.05,'#f5c518',b.x+.2,1.09,b.z,kit,8);bootsAt(b.x+.9,1.06,b.z,kit);S.sign('SEU KIT',.7,.2,b.x+1.6,1.25,b.z,'#25ddff','#111',kit);const kg=glowSprite('#25ddff',1.4);kg.position.set(b.x-.2,1.25,b.z);kit.add(kg);S.item('kit',kit);
   const f=S.group();S.box(.34,.012,.46,'#f6f6f2',b.x+.2,1.065,b.z,f);S.box(.2,.004,.02,'#1f5fa0',b.x+.2,1.075,b.z+.15,f);S.sign('FICHA DE EPI\nASSINADA ✓',.9,.42,b.x+1.5,1.35,b.z,'#2f8a57','#ffffff',f);S.item('ficha',f);
   const f2=S.group();S.sign('EXTRAVIO COMUNICADO\nPROTETOR REPOSTO ✓',1.5,.42,b.x-1.2,1.35,b.z,'#2f8a57','#ffffff',f2);S.item('ficha2',f2);}
  // ---- Prensa com enclausuramento (proteção coletiva) ----
@@ -81,9 +89,9 @@ export function buildScenery(scene,TX){
   S.sign('PRENSA ENCLAUSURADA\nPROTEÇÃO COLETIVA',1.9,.5,p.x,2.45,p.z+p.d/2+.03,'#2f8a57','#ffffff');}
  // ---- Área de ruído: esmeril ----
  {const n=noise,x0=n.x-n.w/2,x1=n.x+n.w/2,z0=n.z-n.d/2,z1=n.z+n.d/2;S.flat(n.w,n.d,'#f2c21c',n.x,n.z,.012,undefined,.12);S.flat(n.w,.14,'#f2c21c',n.x,z1,.016);S.flat(.14,n.d,'#f2c21c',x0,n.z,.016);S.flat(.14,n.d,'#f2c21c',x1,n.z,.016);
-  S.rod([x0,0,z1],[x0,2,z1],.04,'#6b747a');S.sign('USO OBRIGATÓRIO\nPROTETOR AUDITIVO',1.7,.6,x0+.9,1.75,z1,'#1f5fa0','#ffffff');S.rod([x0+1.8,0,z1],[x0+1.8,2,z1],.04,'#6b747a');
+  epiSign(['capacete','oculos','auricular','calcado'],'ÁREA DE RUÍDO • USO OBRIGATÓRIO',x0+1.4,1.75,z1);
   const e=R('esmeril');S.table(e,'#8e979c',.85);for(const x of [1.9,4.3]){S.box(.34,.3,.3,'#3a8f5a',x,1.05,e.z,undefined,.4);for(const dx of [-.27,.27]){const w=S.cyl(.16,.16,.06,'#b7b4aa',x+dx,1.1,e.z,undefined,18);w.rotation.z=Math.PI/2;}S.box(.5,.14,.3,'#2b3033',x,.93,e.z);}
-  S.sign('ESMERIL',1,.24,e.x,1.9,e.z-.3,'#23282c','#f5c948');
+  epiSign(['facial','luva'],'ESMERIL',e.x,2,e.z-.5);
   const g=S.group();const gl=glowSprite('#ffb347',.9);gl.position.set(2.17,1.12,e.z+.2);g.add(gl);const l=new T.PointLight('#ffb347',3,5,1.6);l.position.set(2.17,1.3,e.z+.5);g.add(l);S.item('faisca',g);}
  // ---- Bancada de peças e coletor de EPI danificado ----
  {const b=R('bancada');S.table(b,'#d8cfb7',.85);for(const [dx,dz,w] of [[-.7,0,.3],[-.2,.1,.4],[.6,-.1,.34]])S.box(w,.12,.24,'#8e979c',b.x+dx,.94,b.z+dz,undefined,.7);
@@ -92,7 +100,7 @@ export function buildScenery(scene,TX){
   const o=S.group();S.sign('ÓCULOS SUBSTITUÍDOS ✓',1.3,.24,b.x,1.35,b.z+.25,'#2f8a57','#ffffff',o);S.item('oculosNovo',o);}
  // ---- Bancada de tintas e produtos químicos ----
  {const t=R('tintas');S.table(t,'#c9ced1',.85);for(const [dx,c] of [[-.9,'#d6362b'],[-.5,'#2a6fd6'],[-.1,'#f2c21c'],[.5,'#f2f2ec'],[.9,'#2f8a57']])S.cyl(.12,.12,.26,c,t.x+dx,1.01,t.z,undefined,14);
-  S.sign('TINTAS E SOLVENTES',2.2,.3,t.x,1.8,t.z-.3,'#8f5a10','#ffffff');S.rod([t.x-1.1,.8,t.z-.35],[t.x-1.1,1.95,t.z-.35],.03,'#7a858b');S.rod([t.x+1.1,.8,t.z-.35],[t.x+1.1,1.95,t.z-.35],.03,'#7a858b');
+  epiSign(['oculos','respirador','avental','luvaQuimica'],'TINTAS E SOLVENTES',t.x,1.9,t.z-.55);
   const d=R('tambores');for(const [dx,dz,c] of [[-.38,-.3,'#2a6fd6'],[.38,-.3,'#d6362b'],[0,.4,'#2a6fd6']]){S.cyl(.33,.33,.95,c,d.x+dx,.48,d.z+dz,undefined,18);S.cyl(.34,.34,.04,'#c9d1d4',d.x+dx,.72,d.z+dz,undefined,18);}
   S.sign('SOLVENTE\nINFLAMÁVEL',.9,.5,d.x,1.5,d.z+.78,'#d6362b','#ffffff');S.rod([d.x,0,d.z+.76],[d.x,1.25,d.z+.76],.03,'#6b747a');
   const a=R('armarioResp');S.box(a.w,1.8,a.d,'#e9e4d6',a.x,.9,a.z,undefined,.2);S.sign('RESPIRADORES',1.3,.24,a.x-.36,1.5,a.z,'#1f5fa0','#ffffff',undefined,-Math.PI/2);}
@@ -101,12 +109,12 @@ export function buildScenery(scene,TX){
   const rail=(a,b)=>{for(const y of [.55,1.1])S.rod([a[0],m.h+y,a[1]],[b[0],m.h+y,b[1]],.03,'#f2c21c');for(const p of [a,b])S.rod([p[0],m.h,p[1]],[p[0],m.h+1.1,p[1]],.035,'#f2c21c');};
   rail([x0,z0],[x1,z0]);rail([x0,z0],[x0,z1]);rail([x1,z0],[x1,z1]);rail([x0,z1],[m.x-1.3,z1]);
   for(const dx of [-.28,.28])S.rod([m.x+dx,0,z1+.75],[m.x+dx,m.h+1,z1+.05],.035,'#d9a116');for(let i=1;i<10;i++){const k=i/10.5;S.rod([m.x-.28,k*(m.h+1),z1+.75-k*.7],[m.x+.28,k*(m.h+1),z1+.75-k*.7],.022,'#d9a116');}
-  S.sign('MEZANINO • 3 m\nRISCO DE QUEDA',1.8,.5,m.x-1.7,2.4,z1+.03,'#f2c21c','#111');S.box(.5,.1,.16,'#f6f6f2',m.x+1.6,m.h+2.2,m.z);S.rod([m.x+1.6,m.h+2.25,m.z],[m.x+1.6,m.h+3,m.z],.012,'#23282c');
+  S.sign('MEZANINO • 3 m\nRISCO DE QUEDA',1.8,.5,m.x-1.7,2.55,z1+.03,'#f2c21c','#111');epiSign(['capacete','cinturao'],'TRABALHO EM ALTURA',m.x-1.75,1.55,z1+.12);S.box(.5,.1,.16,'#f6f6f2',m.x+1.6,m.h+2.2,m.z);S.rod([m.x+1.6,m.h+2.25,m.z],[m.x+1.6,m.h+3,m.z],.012,'#23282c');
   S.rod([m.x+.9,m.h,z1-.3],[m.x+.9,m.h+2.1,z1-.3],.05,'#d6362b');S.sphere(.08,'#d6362b',m.x+.9,m.h+2.1,z1-.3);
   const g=S.group();S.rod([m.x+.9,m.h+2.05,z1-.3],[m.x+1.6,m.h+1.15,z1-.5],.018,'#25ddff',g);S.rod([m.x-1.3,m.h+1.1,z1],[x1,m.h+1.1,z1],.02,'#25ddff',g);S.sign('TALABARTE ANCORADO ✓',1.6,.26,m.x+1.6,2.4,z1+.03,'#2f8a57','#ffffff',g);S.item('talabarte',g);}
  // ---- Posto de solda ----
  {const b=R('solda');S.table(b,'#6b747a',.85);S.box(.5,.6,.7,'#c62b20',b.x+.05,.3,b.z-1.5,undefined,.3);S.box(.4,.08,.5,'#8e979c',b.x-.1,.93,b.z);const gl=glowSprite('#9fd8ff',.5);gl.position.set(b.x-.25,1.02,b.z);scene.add(gl);
-  const w=R('biombo');const cm=new T.MeshStandardMaterial({color:'#e2732a',transparent:true,opacity:.5,roughness:.6,side:T.DoubleSide});const c=new T.Mesh(new T.BoxGeometry(w.w,1.7,.05),cm);c.position.set(w.x,1.05,w.z);scene.add(c);for(const dx of [-w.w/2,0,w.w/2])S.rod([w.x+dx,0,w.z],[w.x+dx,2,w.z],.04,'#5e666b');S.sign('SOLDA',1,.26,w.x,2.1,w.z+.04,'#23282c','#f5c948');}
+  const w=R('biombo');const cm=new T.MeshStandardMaterial({color:'#e2732a',transparent:true,opacity:.5,roughness:.6,side:T.DoubleSide});const c=new T.Mesh(new T.BoxGeometry(w.w,1.7,.05),cm);c.position.set(w.x,1.05,w.z);scene.add(c);for(const dx of [-w.w/2,0,w.w/2])S.rod([w.x+dx,0,w.z],[w.x+dx,2,w.z],.04,'#5e666b');epiSign(['capacete','oculos','avental','luva'],'SOLDA',w.x,2.45,w.z+.06,0,.5);}
  // ---- Quadro de treinamento ----
  S.board(R('board'),'NR 6 • SEU EPI',['Só com CA (6.4.1)','Gratuito e registrado (6.5.1)','Use para a finalidade certa','Limpe, guarde e conserve','Avise dano ou extravio (6.6.1)']);
  // ---- Vestiário: armários individuais e pia ----
